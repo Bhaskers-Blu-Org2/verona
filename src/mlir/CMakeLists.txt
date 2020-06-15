@@ -1,7 +1,12 @@
 find_package(Threads REQUIRED)
 
+# We're not building LLVM, but downloading the build dir from an artefact
+set(LLVM_BUILD "${CMAKE_SOURCE_DIR}/external/llvm-project/build")
+
 # Find MLIR_DIR and LLVM_EXTERNAL_LIT from LLVM_BUILD
 if (NOT DEFINED MLIR_DIR AND DEFINED LLVM_BUILD)
+  set(LLVM_DIR ${LLVM_BUILD}/lib/cmake/mlir)
+  message(STATUS "Setting LLVM_DIR as ${LLVM_DIR}")
   set(MLIR_DIR ${LLVM_BUILD}/lib/cmake/mlir)
   message(STATUS "Setting MLIR_DIR as ${MLIR_DIR}")
 endif()

@@ -26,9 +26,8 @@ add_subdirectory(compiler)
 add_subdirectory(interpreter)
 add_subdirectory(stdlib)
 
-# Builds the new experimental MLIR based compiler
-# Enable with -DEXPERIMENTAL_MLIR_COMPILER=True
-if(EXPERIMENTAL_MLIR_COMPILER)
+# Some builds (ex. clang format) don't need LLVM
+if(NOT DISABLE_LLVM_BUILD)
   add_subdirectory(mlir)
 endif()
 
