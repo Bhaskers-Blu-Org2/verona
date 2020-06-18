@@ -60,9 +60,6 @@ namespace mlir::verona
     mlir::FuncOp parseProto(const ::ast::Ast& ast);
     mlir::FuncOp parseFunction(const ::ast::Ast& ast);
 
-    // Parses a global variable, from a top-level (module) view.
-    mlir::Value parseGlobal(const ::ast::Ast& ast);
-
     // Recursive type parser, gathers all available information on the type
     // and sub-types, modifiers, annotations, etc.
     mlir::Type parseType(const ::ast::Ast& ast);

@@ -2,9 +2,12 @@
 // Licensed under the MIT License.
 
 #include "CLI/CLI.hpp"
+#include "ast/cli.h"
+#include "ast/module.h"
 #include "ast/parser.h"
 #include "ast/path.h"
 #include "ast/prec.h"
+#include "ast/ref.h"
 #include "ast/sym.h"
 #include "dialect/VeronaDialect.h"
 #include "generator.h"
@@ -140,15 +143,9 @@ int main(int argc, char** argv)
     case Source::VERONA:
     {
       // Parse the file
-      auto parser = parser::create(opt.grammar);
-      auto ast = parser::parse(parser, opt.filename);
-      // Cleanup the AST
       err::Errors err;
-      sym::scope(ast, err);
-      if (err.empty())
-        sym::references(ast, err);
-      if (err.empty())
-        prec::build(ast, err);
+      module::Passes passes = {sym::build, ref::build, prec::build};
+      auto m = module::build(opt.grammar, passes, opt.filename, "verona", err);
       if (!err.empty())
       {
         std::cerr << "ERROR: cannot parse Verona file " << filename.str()
@@ -157,7 +154,7 @@ int main(int argc, char** argv)
         return 1;
       }
       // Parse AST file into MLIR
-      gen.readAST(ast);
+      gen.readAST(m->ast);
       break;
     }
     case Source::MLIR:

@@ -134,10 +134,11 @@ namespace mlir::verona
 
   void Generator::parseModule(const ::ast::Ast& ast)
   {
-    assert(ast->tag == NodeType::Module && "Bad node");
+    assert(ast->tag == NodeType::ClassDef && "Bad node");
     module = mlir::ModuleOp::create(getLocation(ast));
     // TODO: Support more than just functions at the module level
-    for (auto fun : ast->nodes)
+    auto body = findNode(ast, NodeType::TypeBody);
+    for (auto fun : body.lock()->nodes)
       module->push_back(parseFunction(fun));
   }
 

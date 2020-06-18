@@ -31,6 +31,7 @@ namespace mlir::verona
     {
       None = 0,
       Module = peg::str2tag("module"),
+      ClassDef = peg::str2tag("classdef"),
       Function = peg::str2tag("function"),
       FuncName = peg::str2tag("funcname"),
       Sig = peg::str2tag("sig"),
@@ -40,6 +41,7 @@ namespace mlir::verona
       Constraint = peg::str2tag("constraint"),
       Type = peg::str2tag("type"),
       TypeRef = peg::str2tag("type_ref"),
+      TypeBody = peg::str2tag("typebody"),
       Params = peg::str2tag("params"),
       NamedParam = peg::str2tag("namedparam"),
       ID = peg::str2tag("id"),

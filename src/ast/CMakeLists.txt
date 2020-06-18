@@ -2,6 +2,7 @@ find_package(Threads REQUIRED)
 
 add_library(verona-ast-lib
   ast.cc
+  cli.cc
   err.cc
   files.cc
   lit.cc
