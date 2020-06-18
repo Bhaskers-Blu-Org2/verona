@@ -81,7 +81,7 @@ jobs:
     displayName: 'Download Package'
     inputs:
       command: download
-      vstsFeed: Project%20Verona/LLVMBuild
+      vstsFeed: Project%20Verona/LLVMBuild@Release
       vstsFeedPackage: $(PKG_NAME)
       vstsPackageVersion: '*'
       downloadDirectory: /tmp/
@@ -156,7 +156,7 @@ jobs:
     displayName: 'Download Package'
     inputs:
       command: download
-      vstsFeed: Project%20Verona/LLVMBuild
+      vstsFeed: Project%20Verona/LLVMBuild@Release
       vstsFeedPackage: $(PKG_NAME)
       vstsPackageVersion: '*'
       downloadDirectory: '$(Build.SourcesDirectory)'
@@ -225,7 +225,7 @@ jobs:
     displayName: 'Download Package'
     inputs:
       command: download
-      vstsFeed: Project%20Verona/LLVMBuild
+      vstsFeed: Project%20Verona/LLVMBuild@Release
       vstsFeedPackage: $(PKG_NAME)
       vstsPackageVersion: '*'
       downloadDirectory: /tmp/
