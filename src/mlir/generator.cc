@@ -317,6 +317,7 @@ namespace mlir::verona
       auto type = mlir::OpaqueType::get(dialect, "ret", &context);
       return genOperation(getLocation(ast), "verona.add", {arg0, arg1}, type);
     }
+    llvm_unreachable("Operation not implemented yet");
   }
 
   mlir::Value Generator::genOperation(
