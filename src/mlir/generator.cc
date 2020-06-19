@@ -27,7 +27,9 @@ namespace mlir::verona
   // ===================================================== Public Interface
   void Generator::readAST(const ::ast::Ast& ast)
   {
+    // Parse the AST with the rules below
     parseModule(ast);
+
     // On error, dump module for debug purposes
     if (mlir::failed(mlir::verify(*module)))
     {
@@ -38,6 +40,9 @@ namespace mlir::verona
 
   void Generator::readMLIR(const std::string& filename)
   {
+    if (filename.empty())
+      throw std::runtime_error("No input filename provided");
+
     // Read an MLIR file
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> srcOrErr =
       llvm::MemoryBuffer::getFileOrSTDIN(filename);
@@ -46,33 +51,37 @@ namespace mlir::verona
     llvm::SourceMgr sourceMgr;
     sourceMgr.AddNewSourceBuffer(std::move(*srcOrErr), llvm::SMLoc());
     module = mlir::parseSourceFile(sourceMgr, builder.getContext());
-  }
 
-  mlir::ModuleOp
-  Generator::emitMLIR(llvm::StringRef filename, unsigned optLevel)
-  {
     // On error, dump module for debug purposes
     if (mlir::failed(mlir::verify(*module)))
     {
       module->dump();
       throw std::runtime_error("MLIR verification failed from MLIR file");
     }
+  }
+
+  void Generator::emitMLIR(llvm::StringRef filename, unsigned optLevel)
+  {
     if (filename.empty())
-      return module.get();
+      throw std::runtime_error("No output filename provided");
 
     // Write to the file requested
     std::error_code error;
     auto out = llvm::raw_fd_ostream(filename, error);
     if (error)
-      throw std::runtime_error("Failed open output file");
+      throw std::runtime_error("Cannot open output filename");
 
+    // We're not optimising the MLIR module like we do for LLVM output
+    // because this is mostly for debug and testing. We could do that
+    // in the future.
     module->print(out);
-    return module.get();
   }
 
-  std::unique_ptr<llvm::Module>
-  Generator::emitLLVM(llvm::StringRef filename, unsigned optLevel)
+  void Generator::emitLLVM(llvm::StringRef filename, unsigned optLevel)
   {
+    if (filename.empty())
+      throw std::runtime_error("No output filename provided");
+
     // The lowering "pass manager"
     mlir::PassManager pm(&context);
     if (optLevel > 0)
@@ -104,7 +113,6 @@ namespace mlir::verona
       throw std::runtime_error("Failed open output file");
 
     llvm->print(out, nullptr);
-    return llvm;
   }
 
   // ===================================================== AST -> MLIR
@@ -302,13 +310,13 @@ namespace mlir::verona
     // are function calls. FIXME: Is this really what we want?
     if (functionTable.inScope(name))
     {
-      // TODO: Lower calls
+      // TODO: Lower calls.
       return mlir::Value();
     }
 
     // Else, it should be an operation that we can lower natively
     // TODO: Separate between unary, binary, ternary, etc.
-    // FIXME: Make this actually dynamic
+    // FIXME: Make this able to discern different types of operations.
     if (name == "+")
     {
       auto arg0 = parseNode(findNode(ast, NodeType::Localref).lock());
@@ -333,5 +341,4 @@ namespace mlir::verona
     auto op = builder.createOperation(state);
     return op->getResult(0);
   }
-
 }

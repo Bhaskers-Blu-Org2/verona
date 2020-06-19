@@ -18,12 +18,15 @@
 
 namespace
 {
+  // Source file types, to choose how to parse
   enum class Source
   {
     NONE,
     VERONA,
     MLIR
   };
+
+  // Command line options, with output control
   struct Opt
   {
     std::string grammar;
@@ -33,6 +36,7 @@ namespace
     bool llvm = false;
   };
 
+  // Parse cmd-line and set defaults
   Opt parse(int argc, char** argv)
   {
     CLI::App app{"Verona MLIR"};
@@ -67,61 +71,63 @@ namespace
 
     return opt;
   }
-} // namespace
 
-void help()
-{
-  std::cout << "Compiler Syntax: verona-mlir AST|MLIR|LLVM <filename.verona>"
-            << std::endl;
-}
-
-Source getSourceType(llvm::StringRef filename)
-{
-  auto source = Source::NONE;
-  if (filename.endswith(".verona"))
-    source = Source::VERONA;
-  else if (filename.endswith(".mlir"))
-    source = Source::MLIR;
-  else if (filename == "-") // STDIN, assume MLIR
-    source = Source::MLIR;
-  return source;
-}
-
-std::string getOutputFilename(llvm::StringRef filename, Opt& opt, Source source)
-{
-  if (!opt.output.empty())
-    return opt.output;
-  if (filename == "-")
-    return "-";
-
-  std::string newName = filename.substr(0, filename.find_last_of('.')).str();
-  if (opt.mlir)
+  // Print help
+  void help()
   {
-    if (source == Source::MLIR)
-      newName += ".mlir.out";
+    std::cout << "Compiler Syntax: verona-mlir AST|MLIR|LLVM <filename.verona>"
+              << std::endl;
+  }
+
+  // Detect source type from extension
+  Source getSourceType(llvm::StringRef filename)
+  {
+    auto source = Source::NONE;
+    if (filename.endswith(".verona"))
+      source = Source::VERONA;
+    else if (filename.endswith(".mlir"))
+      source = Source::MLIR;
+    else if (filename == "-") // STDIN, assume MLIR
+      source = Source::MLIR;
+    return source;
+  }
+
+  // Choose output file extension from output type
+  // Careful with mlir->mlir not to overwrite source file
+  std::string
+  getOutputFilename(llvm::StringRef filename, Opt& opt, Source source)
+  {
+    if (!opt.output.empty())
+      return opt.output;
+    if (filename == "-")
+      return "-";
+
+    std::string newName = filename.substr(0, filename.find_last_of('.')).str();
+    if (opt.mlir)
+    {
+      if (source == Source::MLIR)
+        newName += ".mlir.out";
+      else
+        newName += ".mlir";
+    }
     else
-      newName += ".mlir";
+    {
+      newName += ".ll";
+    }
+    return newName;
   }
-  else
-  {
-    newName += ".ll";
-  }
-  return newName;
-}
+} // namespace
 
 int main(int argc, char** argv)
 {
+  // MLIR boilerplace
   mlir::registerAllDialects();
   mlir::registerAllPasses();
-
   // TODO: Register verona passes here.
   mlir::registerDialect<mlir::verona::VeronaDialect>();
 
   // Set up pretty-print signal handlers
   llvm::InitLLVM y(argc, argv);
-
-  // MLIR Context
-  mlir::MLIRContext context;
 
   // Parse cmd-line options
   auto opt = parse(argc, argv);
@@ -135,9 +141,10 @@ int main(int argc, char** argv)
   }
   std::string outputFilename = getOutputFilename(filename, opt, source);
 
-  // Generator
+  // MLIR Generator
   mlir::verona::Generator gen;
 
+  // Parse the source file (verona/mlir)
   switch (source)
   {
     case Source::VERONA:
@@ -154,41 +161,68 @@ int main(int argc, char** argv)
         return 1;
       }
       // Parse AST file into MLIR
-      gen.readAST(m->ast);
+      try
+      {
+        gen.readAST(m->ast);
+      }
+      catch (std::runtime_error& e)
+      {
+        std::cerr << "ERROR: cannot convert Verona file " << filename.str()
+                  << " into MLIR" << std::endl
+                  << e.what() << std::endl;
+        return 1;
+      }
       break;
     }
     case Source::MLIR:
       // Parse MLIR file
-      gen.readMLIR(opt.filename);
+      try
+      {
+        gen.readMLIR(opt.filename);
+      }
+      catch (std::runtime_error& e)
+      {
+        std::cerr << "ERROR: cannot read MLIR file " << filename.str()
+                  << std::endl
+                  << e.what() << std::endl;
+        return 1;
+      }
       break;
     default:
       std::cerr << "ERROR: invalid source file type" << std::endl;
       return 1;
   }
 
-  // Dump the MLIR graph
+  // Emit the MLIR graph
   if (opt.mlir)
   {
-    auto mlir = gen.emitMLIR(outputFilename);
-    if (!mlir)
+    try
     {
-      std::cerr << "ERROR: failed to lower to MLIR" << std::endl;
+      gen.emitMLIR(outputFilename);
+    }
+    catch (std::runtime_error& e)
+    {
+      std::cerr << "ERROR: failed to lower to MLIR" << std::endl
+                << e.what() << std::endl;
       return 1;
     }
     return 0;
   }
 
-  // Dump LLVM IR
+  // Emit LLVM IR
   if (opt.llvm)
   {
-    auto llvm = gen.emitLLVM(outputFilename);
-    if (!llvm)
+    try
     {
-      std::cerr << "ERROR: failed to lower to LLVM" << std::endl;
+      gen.emitLLVM(outputFilename);
+    }
+    catch (std::runtime_error& e)
+    {
+      std::cerr << "ERROR: failed to lower to LLVM" << std::endl
+                << e.what() << std::endl;
       return 1;
     }
     return 0;
   }
-
   return 0;
 }

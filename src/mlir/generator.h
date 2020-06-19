@@ -19,22 +19,36 @@
 
 namespace mlir::verona
 {
+  // MLIR Generator.
+  //
+  // There are two entry points: AST and MLIR, and two exit points: MLIR
+  // and LLVM IR. The MLIR -> MLIR path is for self-validation and future
+  // optimisation passes (mainly testing).
+  //
+  // The LLVM IR can be dumped or used in the next step of the compilation,
+  // lowering to machine code by the LLVM library.
+  //
+  // For now, the error handling is crude and needs proper consideration,
+  // especially aggregating all errors and context before sending it back to
+  // the public API callers.
   struct Generator
   {
     Generator() : builder(&context)
     {
+      // Opaque operations and types can only exist if we allow
+      // unregistered dialects to co-exist. Full conversions later will
+      // make sure we end up with onlt Verona dialect, then Standard
+      // dialects, then LLVM dialect, before converting to LLVM IR.
       context.allowUnregisteredDialects();
     }
 
-    // Read AST/MLIR into the opaque MLIR format
+    // Read AST/MLIR into MLIR module, returns false on failure.
     void readAST(const ::ast::Ast& ast);
     void readMLIR(const std::string& filename);
 
     // Transform the opaque MLIR format into Verona dialect and LLVM IR.
-    mlir::ModuleOp
-    emitMLIR(const llvm::StringRef filename = "", unsigned optLevel = 0);
-    std::unique_ptr<llvm::Module>
-    emitLLVM(const llvm::StringRef filename = "", unsigned optLevel = 0);
+    void emitMLIR(const llvm::StringRef filename = "", unsigned optLevel = 0);
+    void emitLLVM(const llvm::StringRef filename = "", unsigned optLevel = 0);
 
     using Types = llvm::SmallVector<mlir::Type, 4>;
     using Values = llvm::SmallVector<mlir::Value, 4>;
