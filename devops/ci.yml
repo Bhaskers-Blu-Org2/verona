@@ -113,7 +113,6 @@ jobs:
 
   - script: |
       set -eo pipefail
-      # TODO: Make all this part of the "ninja check" target
       export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-6.0/bin/llvm-symbolizer
       export ASAN_OPTIONS="alloc_dealloc_mismatch=0 symbolize=1"
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure
@@ -133,8 +132,14 @@ jobs:
     vmImage: 'windows-2019'
   strategy:
     matrix:
+      Debug:
+        CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
+        BuildType: Debug
+        BuildName: debug
       Release:
+        CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
         BuildType: Release
+        BuildName: release
 
   steps:
   - checkout: self
@@ -149,7 +154,7 @@ jobs:
     displayName: 'Dependencies'
 
   - bash:
-      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-windows-release-$(LLVMCommit)"
+      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-windows-$(BuildName)-$(LLVMCommit)"
     displayName: 'Set LLVM Package'
 
   - task: UniversalPackages@0
@@ -169,7 +174,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 16 2019" -DENABLE_ASSERTS=ON -DVERONA_CI_BUILD=On -DSNMALLOC_CI_BUILD=On -DRT_TESTS=$(RTTests)
+      cmake .. -G"Visual Studio 16 2019" -DENABLE_ASSERTS=ON -DVERONA_CI_BUILD=On -DSNMALLOC_CI_BUILD=On -DRT_TESTS=$(RTTests) -DCMAKE_CXX_FLAGS="$(CXXFLAGS)"
     displayName: 'CMake'
 
   - task: MSBuild@1
