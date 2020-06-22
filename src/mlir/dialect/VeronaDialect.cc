@@ -32,7 +32,7 @@ Type VeronaDialect::parseType(DialectAsmParser& parser) const
   if (parser.parseKeyword(&keyword))
     return Type();
 
-  if (keyword.startswith("U"))
+  if (keyword.startswith("U") || keyword.startswith("S"))
   {
     size_t width = 0;
     if (keyword.substr(1).getAsInteger(10, width))
@@ -40,7 +40,8 @@ Type VeronaDialect::parseType(DialectAsmParser& parser) const
       parser.emitError(parser.getNameLoc(), "unknown verona type: ") << keyword;
       return Type();
     }
-    return IntegerType::get(getContext(), width, false);
+    bool sign = keyword.startswith("S");
+    return IntegerType::get(getContext(), width, sign);
   }
 
   parser.emitError(parser.getNameLoc(), "unknown verona type: ") << keyword;
@@ -78,7 +79,7 @@ namespace mlir::verona::detail
 {
   struct IntegerTypeStorage : public ::mlir::TypeStorage
   {
-    size_t width;
+    uint8_t width;
     enum SignType
     {
       Unknown,
