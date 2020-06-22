@@ -18,7 +18,7 @@
 
 namespace mlir::verona
 {
-  // We need this becayse the ""_ operator doens't stack well outside of the
+  // We need this because the ""_ operator doens't stack well outside of the
   // peg namespace, so we need to call str2tag directly. Easier to do so in a
   // constexpr enum type creation and let the rest be unsigned comparisons.
   // The AST code needs to be flexible, so using the operator directly is more
@@ -60,7 +60,7 @@ namespace mlir::verona
   // Find a sub-node of tag 'type'
   ::ast::WeakAst findNode(::ast::WeakAst ast, NodeType::Int type);
 
-  // Get token value or return "unk{inc++}" if empty
+  // Get token value
   llvm::StringRef getTokenValue(::ast::WeakAst ast);
 
   // Type helpers
