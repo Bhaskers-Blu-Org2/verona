@@ -86,6 +86,9 @@ namespace mlir::verona
     module->print(out);
   }
 
+  // FIXME: This function will not work. It must receive an MLIR module that is
+  // 100% composed of dialects that can be fully converted to LLVM dialect.
+  // We keep this code here as future reference on how to lower to LLVM.
   void Generator::emitLLVM(llvm::StringRef filename, unsigned optLevel)
   {
     if (filename.empty())
