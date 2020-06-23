@@ -19,10 +19,10 @@
 namespace
 {
   // Source file types, to choose how to parse
-  enum class Source
+  enum class SourceKind
   {
-    NONE,
-    VERONA,
+    None,
+    Verona,
     MLIR
   };
 
@@ -80,22 +80,22 @@ namespace
   }
 
   // Detect source type from extension
-  Source getSourceType(llvm::StringRef filename)
+  SourceKind getSourceType(llvm::StringRef filename)
   {
-    auto source = Source::NONE;
+    auto source = SourceKind::None;
     if (filename.endswith(".verona"))
-      source = Source::VERONA;
+      source = SourceKind::Verona;
     else if (filename.endswith(".mlir"))
-      source = Source::MLIR;
+      source = SourceKind::MLIR;
     else if (filename == "-") // STDIN, assume MLIR
-      source = Source::MLIR;
+      source = SourceKind::MLIR;
     return source;
   }
 
   // Choose output file extension from output type
   // Careful with mlir->mlir not to overwrite source file
   std::string
-  getOutputFilename(llvm::StringRef filename, Opt& opt, Source source)
+  getOutputFilename(llvm::StringRef filename, Opt& opt, SourceKind source)
   {
     if (!opt.output.empty())
       return opt.output;
@@ -105,7 +105,7 @@ namespace
     std::string newName = filename.substr(0, filename.find_last_of('.')).str();
     if (opt.mlir)
     {
-      if (source == Source::MLIR)
+      if (source == SourceKind::MLIR)
         newName += ".mlir.out";
       else
         newName += ".mlir";
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
   auto opt = parse(argc, argv);
   llvm::StringRef filename(opt.filename);
   auto source = getSourceType(filename);
-  if (source == Source::NONE)
+  if (source == SourceKind::None)
   {
     std::cerr << "ERROR: Unknown source file " << filename.str()
               << ". Must be [verona, mlir]" << std::endl;
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
   // Parse the source file (verona/mlir)
   switch (source)
   {
-    case Source::VERONA:
+    case SourceKind::Verona:
     {
       // Parse the file
       err::Errors err;
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
       }
       break;
     }
-    case Source::MLIR:
+    case SourceKind::MLIR:
       // Parse MLIR file
       try
       {

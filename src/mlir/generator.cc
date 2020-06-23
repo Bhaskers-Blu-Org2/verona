@@ -50,8 +50,11 @@ namespace mlir::verona
       throw std::runtime_error("No input filename provided");
 
     // Read an MLIR file
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> srcOrErr =
-      llvm::MemoryBuffer::getFileOrSTDIN(filename);
+    auto srcOrErr = llvm::MemoryBuffer::getFileOrSTDIN(filename);
+
+    if (auto err = srcOrErr.getError())
+      throw std::runtime_error(
+        "Cannot open file " + filename + ": " + err.message());
 
     // Setup source manager and parse
     llvm::SourceMgr sourceMgr;
