@@ -135,11 +135,9 @@ jobs:
       Debug:
         CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
         BuildType: Debug
-        BuildName: debug
       Release:
         CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
         BuildType: Release
-        BuildName: release
 
   steps:
   - checkout: self
@@ -154,7 +152,7 @@ jobs:
     displayName: 'Dependencies'
 
   - bash:
-      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-windows-$(BuildName)-$(LLVMCommit)"
+      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-windows-release-$(LLVMCommit)"
     displayName: 'Set LLVM Package'
 
   - task: UniversalPackages@0
