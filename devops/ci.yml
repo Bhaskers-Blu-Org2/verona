@@ -132,11 +132,11 @@ jobs:
     vmImage: 'windows-2019'
   strategy:
     matrix:
-      Debug:
-        CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
-        BuildType: Debug
+      RelWithDebInfo:
+        CXXFLAGS: '/EHsc'
+        BuildType: RelWithDebInfo
       Release:
-        CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
+        CXXFLAGS: '/EHsc'
         BuildType: Release
 
   steps:
@@ -169,6 +169,12 @@ jobs:
     displayName: 'Setup LLVM Build dir'
     workingDirectory: '$(Build.SourcesDirectory)'
 
+  - powershell: |
+      cd external/llvm-project/build
+      if (Test-Path -Path Debug) { rm -r Debug }
+      cp -r Release Debug
+    displayName: 'Fix LLVM Debug Build'
+
   - script: |
       mkdir build
       cd build
@@ -181,9 +187,10 @@ jobs:
       solution: build/INSTALL.vcxproj
       msbuildArguments: '/m /p:Configuration=$(BuildType)'
 
-  - script: |
+  - bash: |
+      python $(realpath ../external/llvm-project/llvm/utils/lit/lit.py) -sv $(realpath ../testsuite/mlir)
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure --interactive-debug-mode 0 -C $(BuildType)
-    workingDirectory: build/
+    workingDirectory: build
     displayName: 'Tests'
 
   - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
