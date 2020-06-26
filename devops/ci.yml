@@ -132,9 +132,6 @@ jobs:
     vmImage: 'windows-2019'
   strategy:
     matrix:
-      RelWithDebInfo:
-        CXXFLAGS: '/EHsc'
-        BuildType: RelWithDebInfo
       Release:
         CXXFLAGS: '/EHsc'
         BuildType: Release
@@ -168,12 +165,6 @@ jobs:
       ./utils/llvm/setup-llvm-builddir.sh $(PKG_NAME).tar.gz
     displayName: 'Setup LLVM Build dir'
     workingDirectory: '$(Build.SourcesDirectory)'
-
-  - powershell: |
-      cd external/llvm-project/build
-      if (Test-Path -Path Debug) { rm -r Debug }
-      cp -r Release Debug
-    displayName: 'Fix LLVM Debug Build'
 
   - script: |
       mkdir build

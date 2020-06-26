@@ -14,8 +14,29 @@ schedules:
     - master
 
 jobs:
+############################################## Configure CI Run
+- job: ConfigureCIRun
+  pool:
+    vmImage: 'ubuntu-16.04'
+  steps:
+  - script: |
+      if [ -z "$(LLVMCommit)" ]; then
+        echo "LLVMCommit empty, picking from submodule"
+        LLVMCommit=$(git submodule status external/llvm-project | grep -o "[0-9a-f]\{11\}" | head -n 1)
+      else
+        LLVMCommit=$(LLVMCommit)
+      fi
+      echo "LLVMCommit: $LLVMCommit"
+      echo "##vso[task.setvariable variable=LLVMCommit;isOutput=true]$LLVMCommit"
+    displayName: 'Check for runtime changes'
+    name: setVarStep
+
+############################################## Linux Builds
 - job:
   displayName: Linux
+  dependsOn: ConfigureCIRun
+  variables:
+    LLVMCommit: $[ dependencies.ConfigureCIRun.outputs['setVarStep.LLVMCommit'] ]
   pool:
     vmImage: 'ubuntu-18.04'
   strategy:
@@ -58,7 +79,31 @@ jobs:
         Asan: On
   steps:
   - checkout: self
-    submodules: recursive
+
+  - script: |
+      set -eo pipefail
+      git submodule init
+      git submodule update --depth 1 --recursive
+    displayName: 'Checkout submodules'
+
+  - script:
+      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-linux-release-$(LLVMCommit)"
+    displayName: 'Set LLVM Package'
+
+  - task: UniversalPackages@0
+    displayName: 'Download Package'
+    inputs:
+      command: download
+      vstsFeed: Project%20Verona/LLVMBuild@Release
+      vstsFeedPackage: $(PKG_NAME)
+      vstsPackageVersion: '*'
+      downloadDirectory: /tmp/
+
+  - bash: |
+      set -eo pipefail
+      ./utils/llvm/setup-llvm-builddir.sh /tmp/$(PKG_NAME).tar.gz
+    displayName: 'Setup LLVM Build dir'
+    workingDirectory: '$(Build.SourcesDirectory)'
 
   - script: |
       set -eo pipefail
@@ -84,32 +129,61 @@ jobs:
       export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-6.0/bin/llvm-symbolizer
       export ASAN_OPTIONS="alloc_dealloc_mismatch=0 symbolize=1"
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure
+      ninja check-verona-mlir
     workingDirectory: build
     displayName: 'Tests'
 
+############################################## Windows Builds
 - job:
   displayName: Windows
+  dependsOn: ConfigureCIRun
+  variables:
+    LLVMCommit: $[ dependencies.ConfigureCIRun.outputs['setVarStep.LLVMCommit'] ]
   pool:
     vmImage: 'windows-2019'
   strategy:
     matrix:
       RelWithDebInfo:
+        CXXFLAGS: '/EHsc'
         BuildType: RelWithDebInfo
       Release:
+        CXXFLAGS: '/EHsc'
         BuildType: Release
 
   steps:
   - checkout: self
-    submodules: recursive
+
+  - script: |
+      git submodule init
+      git submodule update --depth 1 --recursive
+    displayName: 'Checkout submodules'
 
   - script:
       pip install OutputCheck
     displayName: 'Dependencies'
 
+  - bash:
+      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-windows-release-$(LLVMCommit)"
+    displayName: 'Set LLVM Package'
+
+  - task: UniversalPackages@0
+    displayName: 'Download Package'
+    inputs:
+      command: download
+      vstsFeed: Project%20Verona/LLVMBuild@Release
+      vstsFeedPackage: $(PKG_NAME)
+      vstsPackageVersion: '*'
+      downloadDirectory: '$(Build.SourcesDirectory)'
+
+  - bash: |
+      ./utils/llvm/setup-llvm-builddir.sh $(PKG_NAME).tar.gz
+    displayName: 'Setup LLVM Build dir'
+    workingDirectory: '$(Build.SourcesDirectory)'
+
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 16 2019" -DENABLE_ASSERTS=ON -DVERONA_CI_BUILD=On -DSNMALLOC_CI_BUILD=On -DRT_TESTS=ON
+      cmake .. -G"Visual Studio 16 2019" -DENABLE_ASSERTS=ON -DVERONA_CI_BUILD=On -DSNMALLOC_CI_BUILD=On -DRT_TESTS=ON -DCMAKE_CXX_FLAGS="$(CXXFLAGS)"
     displayName: 'CMake'
 
   - task: MSBuild@1
@@ -119,6 +193,7 @@ jobs:
       msbuildArguments: '/m /p:Configuration=$(BuildType)'
 
   - script: |
+      python $(realpath ../external/llvm-project/llvm/utils/lit/lit.py) -sv $(realpath ../testsuite/mlir)
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure --interactive-debug-mode 0 -C $(BuildType)
     workingDirectory: build/
     displayName: 'Tests'
@@ -128,8 +203,12 @@ jobs:
     inputs:
       failOnAlert: true
 
+############################################## MacOS Builds
 - job:
   displayName: macOS
+  dependsOn: ConfigureCIRun
+  variables:
+    LLVMCommit: $[ dependencies.ConfigureCIRun.outputs['setVarStep.LLVMCommit'] ]
   pool:
     vmImage: 'macOS-10.14'
   strategy:
@@ -141,12 +220,36 @@ jobs:
 
   steps:
   - checkout: self
-    submodules: recursive
+
+  - script: |
+      set -eo pipefail
+      git submodule init
+      git submodule update --depth 1 --recursive
+    displayName: 'Checkout submodules'
 
   - script: |
       set -eo pipefail
       sudo pip install wheel OutputCheck
     displayName:  'Dependencies'
+
+  - script:
+      echo "##vso[task.setvariable variable=PKG_NAME]verona-llvm-x86_64-macos-release-$(LLVMCommit)"
+    displayName: 'Set LLVM Package'
+
+  - task: UniversalPackages@0
+    displayName: 'Download Package'
+    inputs:
+      command: download
+      vstsFeed: Project%20Verona/LLVMBuild@Release
+      vstsFeedPackage: $(PKG_NAME)
+      vstsPackageVersion: '*'
+      downloadDirectory: /tmp/
+
+  - bash: |
+      set -eo pipefail
+      ./utils/llvm/setup-llvm-builddir.sh /tmp/$(PKG_NAME).tar.gz
+    displayName: 'Setup LLVM Build dir'
+    workingDirectory: '$(Build.SourcesDirectory)'
 
   - task: CMake@1
     displayName: 'CMake'
@@ -163,5 +266,6 @@ jobs:
   - script: |
       set -eo pipefail
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure
+      make check-verona-mlir
     workingDirectory: build/
     displayName: 'Tests'
