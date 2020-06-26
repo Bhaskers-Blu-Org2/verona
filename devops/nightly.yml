@@ -180,6 +180,17 @@ jobs:
     displayName: 'Setup LLVM Build dir'
     workingDirectory: '$(Build.SourcesDirectory)'
 
+  - bash: |
+      cd external/llvm-project/build
+      if [ ! -f $(BuildType)/bin/mlir-tblgen ]; then
+        echo "Copying LLVM Release binaries to $(BuildType)"
+        mkdir -p $(BuildType)/bin
+        cp -r Release/bin/* $(BuildType)/bin
+        mkdir -p $(BuildType)/lib
+        cp -r Release/lib/* $(BuildType)/lib
+      fi
+    displayName: 'Setup LLVM Binaries/Libraries'
+
   - script: |
       mkdir build
       cd build
