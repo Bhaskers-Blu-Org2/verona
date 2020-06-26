@@ -144,10 +144,10 @@ jobs:
   strategy:
     matrix:
       RelWithDebInfo:
-        CXXFLAGS: '/EHsc'
+        CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
         BuildType: RelWithDebInfo
       Release:
-        CXXFLAGS: '/EHsc'
+        CXXFLAGS: '/EHsc /D _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1'
         BuildType: Release
 
   steps:
