@@ -129,7 +129,6 @@ jobs:
       export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-6.0/bin/llvm-symbolizer
       export ASAN_OPTIONS="alloc_dealloc_mismatch=0 symbolize=1"
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure
-      ninja check-verona-mlir
     workingDirectory: build
     displayName: 'Tests'
 
@@ -204,7 +203,6 @@ jobs:
       msbuildArguments: '/m /p:Configuration=$(BuildType)'
 
   - script: |
-      python $(realpath ../external/llvm-project/llvm/utils/lit/lit.py) -sv $(realpath ../testsuite/mlir)
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure --interactive-debug-mode 0 -C $(BuildType)
     workingDirectory: build/
     displayName: 'Tests'
@@ -277,6 +275,5 @@ jobs:
   - script: |
       set -eo pipefail
       ctest -j 4 -E "([1-9][0-9]00|[4-9]00)" --timeout 400 --output-on-failure
-      make check-verona-mlir
     workingDirectory: build/
     displayName: 'Tests'
