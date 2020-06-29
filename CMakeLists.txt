@@ -15,13 +15,13 @@ enable_testing()
 if( ENABLE_ASSERTS )
   # MSVC doesn't like _DEBUG on release builds.
   if( NOT MSVC )
-    message(INFO "Enabling asserts")
+    message(STATUS "Enabling asserts")
     add_definitions( -D_DEBUG )
   endif()
   # On non-Debug builds cmake automatically defines NDEBUG, so we
   # explicitly undefine it:
   if( NOT uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG" )
-    message(INFO "Removing NDEBUG from existing flags to enable asserts")
+    message(STATUS "Removing NDEBUG from existing flags to enable asserts")
     # NOTE: use `add_compile_options` rather than `add_definitions` since
     # `add_definitions` does not support generator expressions.
     add_compile_options($<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:-UNDEBUG>)
