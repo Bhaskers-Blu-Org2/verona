@@ -27,60 +27,72 @@ namespace mlir::verona
   {
     using MapTy = std::map<std::string, T>;
     std::vector<MapTy> stack;
-    int currentScope;
 
   public:
-    ScopedTable() : currentScope(-1)
+    ScopedTable()
     {
+      // Global scope
       pushScope();
     }
+
     ~ScopedTable()
     {
+      // Global scope
       popScope();
-      assert(stack.empty() && currentScope == -1);
+      assert(stack.empty());
     }
+
+    // Insert entry on the last scope only
     bool insert(llvm::StringRef key, T value)
     {
-      auto& frame = stack[currentScope];
+      auto& frame = stack.back();
       if (frame.count(key.str()))
         return false;
       auto res = frame.emplace(key, value);
       return res.second;
     }
+
+    // Lookup from the last scope to the first
     T lookup(llvm::StringRef key)
     {
-      for (int i = currentScope; i >= 0; i--)
+      for (auto it = stack.rbegin(), end = stack.rend(); it != end; it++)
       {
-        auto& frame = stack[i];
+        auto& frame = *it;
         if (frame.count(key.str()))
           return frame[key.str()];
       }
       // Use inScope for this not to happen
       llvm_unreachable("Symbol not found");
     }
+
+    // Check that the entry is in the last scope
     bool inScope(llvm::StringRef key)
     {
-      auto frame = stack[currentScope];
+      auto frame = stack.back();
       return frame.count(key.str());
     }
+
+    // Update the entry in the last scope, or create new
     bool update(llvm::StringRef key, T value)
     {
-      auto& frame = stack[currentScope];
+      auto& frame = stack.back();
       if (!frame.count(key.str()))
         return insert(key, value);
       // FIXME: Check types are compatible
       frame[key.str()] = value;
       return true;
     }
+
+    // Creates a new scope
     void pushScope()
     {
-      currentScope++;
       stack.emplace_back();
     }
+
+    // Destroys the inner-most scope
     void popScope()
     {
-      currentScope--;
-      stack.resize(stack.size() - 1);
+      stack.pop_back();
     }
   };
 
