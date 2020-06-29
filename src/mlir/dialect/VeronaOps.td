@@ -7,6 +7,9 @@
 include "VeronaDialect.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
+// This is a useless Verona op that accepts any Verona type as input and output.
+// The purpose of it here is to test a dialect specific operation in the IR,
+// ie. without quotes: verona.foo instead of the opaque "verona.foo".
 def Verona_FooOp : Verona_Op<"foo", [NoSideEffect,
                                              SameOperandsAndResultType]> {
     let summary = "Illustrates how to define an operation.";
