@@ -12,7 +12,7 @@ enable_testing()
 
 # Copied from LLVM, handling release builds with assertions isn't trivial as
 # CMake defines -DNDEBUG automatically and we have to clear it.
-if( ENABLE_ASSERTIONS )
+if( ENABLE_ASSERTS )
   # MSVC doesn't like _DEBUG on release builds.
   if( NOT MSVC )
     message(INFO "Enabling asserts")
